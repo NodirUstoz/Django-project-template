@@ -4,8 +4,6 @@
 
 Build **SaaS applications**, **API backends**, **web apps**, or **internal tools** with one template.
 
-[![CI](https://github.com/NodirUstoz/Django-project-template/actions/workflows/ci.yml/badge.svg)](https://github.com/NodirUstoz/Django-project-template/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Django 5.2](https://img.shields.io/badge/django-5.2-green.svg)](https://www.djangoproject.com/)
 [![Documentation](https://readthedocs.org/projects/django-project-template/badge/?version=latest)](https://django-project-template.readthedocs.io/en/latest/?badge=latest)
