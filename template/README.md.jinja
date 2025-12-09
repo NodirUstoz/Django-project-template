@@ -1,0 +1,342 @@
+# {{ project_name }}
+
+{{ project_description }}
+
+## Features
+
+- **Django {{ '5.2' }}** with Python {{ python_version }}
+- **Package Management**: {{ dependency_manager }}
+- **Database**: {{ database }}
+{% if cache == 'redis' -%}
+- **Cache**: Redis
+{% endif -%}
+{% if api_style != 'none' -%}
+- **API**: {% if api_style == 'drf' %}Django REST Framework{% elif api_style == 'graphql-strawberry' %}Strawberry GraphQL{% else %}DRF + Strawberry GraphQL{% endif %}
+{% endif -%}
+{% if frontend != 'none' -%}
+- **Frontend**: {% if frontend == 'htmx-tailwind' %}HTMX + Tailwind CSS{% else %}Next.js{% endif %}
+{% endif -%}
+{% if use_celery -%}
+- **Background Tasks**: Celery with Redis broker
+{% endif -%}
+{% if use_channels -%}
+- **WebSockets**: Django Channels
+{% endif -%}
+- **Authentication**: {% if auth_backend == 'allauth' %}django-allauth{% elif auth_backend == 'jwt' %}JWT{% else %}django-allauth + JWT{% endif %}
+{% if use_2fa -%}
+- **2FA**: TOTP-based two-factor authentication
+{% endif -%}
+{% if observability_level != 'minimal' -%}
+- **Observability**: {% if observability_level == 'standard' %}Structured logging + Sentry{% else %}OpenTelemetry + Prometheus + Grafana + Sentry{% endif %}
+{% endif -%}
+{% if 'render' in deployment_targets or 'flyio' in deployment_targets or 'aws-ecs-fargate' in deployment_targets or 'docker' in deployment_targets or 'aws-ec2-ansible' in deployment_targets or 'kubernetes' in deployment_targets -%}
+- **Deployment**: {% if 'render' in deployment_targets %}Render (PaaS){% endif %}{% if 'flyio' in deployment_targets %}{% if 'render' in deployment_targets %}, {% endif %}Fly.io (Global Edge){% endif %}{% if 'aws-ecs-fargate' in deployment_targets %}{% if 'render' in deployment_targets or 'flyio' in deployment_targets %}, {% endif %}AWS ECS Fargate{% endif %}{% if 'docker' in deployment_targets %}{% if 'render' in deployment_targets or 'flyio' in deployment_targets or 'aws-ecs-fargate' in deployment_targets %}, {% endif %}Docker{% endif %}{% if 'aws-ec2-ansible' in deployment_targets %}{% if 'render' in deployment_targets or 'flyio' in deployment_targets or 'aws-ecs-fargate' in deployment_targets or 'docker' in deployment_targets %}, {% endif %}AWS EC2 (Ansible){% endif %}{% if 'kubernetes' in deployment_targets %}{% if 'render' in deployment_targets or 'flyio' in deployment_targets or 'aws-ecs-fargate' in deployment_targets or 'docker' in deployment_targets or 'aws-ec2-ansible' in deployment_targets %}, {% endif %}Kubernetes{% endif %}
+{% endif %}
+## Quick Start
+
+### Initial Setup
+
+After generating this project with Django Project Template, initialize Git repository:
+
+```bash
+cd {{ project_slug }}
+git init
+git add .
+git commit -m "🎉 Initial commit
+
+Generated with Django Project Template
+
+Project: {{ project_name }}
+Description: {{ project_description }}"
+```
+
+### Prerequisites
+
+{% if dependency_manager == 'uv' -%}
+- Python {{ python_version }}+
+- [uv](https://docs.astral.sh/uv/) package manager
+{% else -%}
+- Python {{ python_version }}+
+- [Poetry](https://python-poetry.org/)
+{% endif -%}
+- Docker and Docker Compose
+{% if 'kubernetes' in deployment_targets -%}
+- kubectl (for Kubernetes deployment)
+- Helm 3+ (for Kubernetes deployment)
+{% endif -%}
+{% if 'aws-ec2-ansible' in deployment_targets -%}
+- Ansible (for EC2 deployment)
+{% endif %}
+### Development Setup
+
+{% if git_repository_url -%}
+1. **Clone the repository**
+   ```bash
+   git clone {{ git_repository_url }}
+   cd {{ project_slug }}
+   ```
+
+2. **Install dependencies**
+   {% if dependency_manager == 'uv' -%}
+   ```bash
+   uv sync
+   ```
+   {% else -%}
+   ```bash
+   poetry install
+   ```
+   {% endif -%}
+
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your settings
+   ```
+
+4. **Start development services**
+   ```bash
+   docker compose up -d
+   ```
+
+5. **Run migrations**
+   ```bash
+   {% if dependency_manager == 'uv' -%}
+   uv run python manage.py migrate
+   {% else -%}
+   poetry run python manage.py migrate
+   {% endif -%}
+   ```
+
+6. **Create superuser**
+   ```bash
+   {% if dependency_manager == 'uv' -%}
+   uv run python manage.py createsuperuser
+   {% else -%}
+   poetry run python manage.py createsuperuser
+   {% endif -%}
+   ```
+
+7. **Start development server**
+   ```bash
+   {% if dependency_manager == 'uv' -%}
+   uv run python manage.py runserver
+   {% else -%}
+   poetry run python manage.py runserver
+   {% endif -%}
+   ```
+{% else -%}
+1. **Install dependencies**
+   {% if dependency_manager == 'uv' -%}
+   ```bash
+   uv sync
+   ```
+   {% else -%}
+   ```bash
+   poetry install
+   ```
+   {% endif -%}
+
+2. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your settings
+   ```
+
+3. **Start development services**
+   ```bash
+   docker compose up -d
+   ```
+
+4. **Run migrations**
+   ```bash
+   {% if dependency_manager == 'uv' -%}
+   uv run python manage.py migrate
+   {% else -%}
+   poetry run python manage.py migrate
+   {% endif -%}
+   ```
+
+5. **Create superuser**
+   ```bash
+   {% if dependency_manager == 'uv' -%}
+   uv run python manage.py createsuperuser
+   {% else -%}
+   poetry run python manage.py createsuperuser
+   {% endif -%}
+   ```
+
+6. **Start development server**
+   ```bash
+   {% if dependency_manager == 'uv' -%}
+   uv run python manage.py runserver
+   {% else -%}
+   poetry run python manage.py runserver
+   {% endif -%}
+   ```
+{% endif -%}
+
+### Using Justfile (Recommended)
+
+We provide a `Justfile` for common tasks:
+
+```bash
+# Install just: https://github.com/casey/just
+just --list              # Show all available commands
+just dev                 # Start development server
+just test                # Run tests
+just lint                # Run linters
+just format              # Format code
+just migrate             # Run migrations
+just shell               # Open Django shell
+```
+
+## Project Structure
+
+```
+{{ project_slug }}/
+├── apps/                      # Django applications
+│   ├── core/                 # Core app (health checks, utils)
+│   ├── users/                # User model and authentication
+{% if api_style != 'none' -%}
+│   └── api/                  # API endpoints
+{% endif -%}
+├── config/                    # Project configuration
+│   ├── settings/             # Split settings (base, dev, test, prod)
+│   ├── urls.py
+│   ├── asgi.py
+│   └── wsgi.py
+├── static/                    # Static files
+├── media/                     # Media uploads
+├── docs/                      # Documentation (MkDocs)
+│   └── adr/                  # Architecture Decision Records
+{% if 'kubernetes' in deployment_targets -%}
+├── deploy/
+│   └── k8s/                  # Kubernetes manifests
+│       ├── helm/             # Helm charts
+│       └── kustomize/        # Kustomize overlays
+{% endif -%}
+{% if 'aws-ec2-ansible' in deployment_targets -%}
+│   └── ansible/              # Ansible playbooks
+{% endif -%}
+{% if ci_provider in ['github-actions', 'both'] -%}
+├── .github/
+│   └── workflows/            # GitHub Actions
+{% endif -%}
+{% if ci_provider in ['gitlab-ci', 'both'] -%}
+├── .gitlab-ci.yml            # GitLab CI
+{% endif -%}
+├── tests/                     # Test files
+├── Dockerfile                 # Production Docker image
+├── docker-compose.yml         # Development environment
+├── Justfile                   # Task runner
+├── pyproject.toml            # Python dependencies and config
+└── README.md                 # This file
+```
+
+## Development
+
+### Running Tests
+
+```bash
+just test
+# or
+{% if dependency_manager == 'uv' -%}
+uv run pytest
+{% else -%}
+poetry run pytest
+{% endif -%}
+```
+
+### Code Quality
+
+```bash
+# Format code
+just format
+
+# Lint code
+just lint
+
+# Type check
+just typecheck
+```
+
+### Database Migrations
+
+```bash
+# Create migrations
+just makemigrations
+
+# Apply migrations
+just migrate
+
+# Check for migration issues
+just migrate-check
+```
+{% if use_celery %}
+### Background Tasks
+
+Start Celery worker:
+```bash
+just celery-worker
+```
+
+Start Celery beat (periodic tasks):
+```bash
+just celery-beat
+```
+
+Monitor tasks with Flower:
+```bash
+just celery-flower
+```
+{% endif %}
+
+## Deployment
+
+Detailed deployment guides are available in `docs/deployment/`:
+
+{% if 'render' in deployment_targets -%}
+- **[Render](docs/deployment/render.md)**: Zero-config PaaS with `render.yaml`
+{% endif -%}
+{% if 'flyio' in deployment_targets -%}
+- **[Fly.io](docs/deployment/flyio.md)**: Global edge deployment with `fly.toml`
+{% endif -%}
+{% if 'aws-ecs-fargate' in deployment_targets -%}
+- **[AWS ECS Fargate](docs/deployment/ecs.md)**: Serverless containers with Terraform
+{% endif -%}
+{% if 'docker' in deployment_targets -%}
+- **[Docker](docs/deployment/docker.md)**: Universal containerization
+{% endif -%}
+{% if 'aws-ec2-ansible' in deployment_targets -%}
+- **[AWS EC2](docs/deployment/aws-ec2.md)**: Ansible-automated with Caddy
+{% endif -%}
+{% if 'kubernetes' in deployment_targets -%}
+- **[Kubernetes](docs/deployment/kubernetes.md)**: Helm + Kustomize for GitOps
+{% endif %}
+See [Deployment Overview](docs/deployment/overview.md) for platform comparison and decision guide.
+
+## Documentation
+
+Full documentation is available in the `docs/` directory and can be built with MkDocs:
+
+```bash
+just docs-serve
+```
+
+Visit http://localhost:8000 to view the documentation.
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the {{ license }} License - see the [LICENSE](LICENSE) file for details.
+
+## Credits
+
+Built with [Django Project Template](https://github.com/NodirUstoz/Django-project-template) 🚢

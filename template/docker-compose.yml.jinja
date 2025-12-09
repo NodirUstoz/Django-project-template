@@ -1,0 +1,134 @@
+services:
+  web:
+    build: .
+    command: {% if dependency_manager == 'uv' %}uv run {% endif %}gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --reload
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+{% if cache == 'redis' %}
+      redis:
+        condition: service_healthy
+{% endif %}
+    environment:
+      - DEBUG=True
+      - DJANGO_SECRET_KEY=django-insecure-docker-dev-key
+{% if database == 'postgresql' %}
+      - DATABASE_URL=postgresql://{{ project_slug }}_user:{{ project_slug }}_password@db:5432/{{ project_slug }}_db
+{% endif %}
+{% if cache == 'redis' %}
+      - REDIS_URL=redis://redis:6379/0
+{% endif %}
+      - EMAIL_HOST=mailpit
+      - EMAIL_PORT=1025
+{% if dependency_manager == 'uv' %}
+      - UV_NO_CACHE=1
+{% endif %}
+    env_file:
+      - .env
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: {{ project_slug }}_db
+      POSTGRES_USER: {{ project_slug }}_user
+      POSTGRES_PASSWORD: {{ project_slug }}_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ project_slug }}_user -d {{ project_slug }}_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+{% if cache == 'redis' %}
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+{% endif %}
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+{% if background_tasks in ['temporal', 'both'] %}
+
+  temporal:
+    image: temporalio/auto-setup:latest
+    depends_on:
+      - db
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER={{ project_slug }}_user
+      - POSTGRES_PWD={{ project_slug }}_password
+      - POSTGRES_SEEDS=db
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    ports:
+      - "7233:7233"
+    volumes:
+      - ./temporal/dynamicconfig:/etc/temporal/config/dynamicconfig
+    healthcheck:
+      test: ["CMD", "temporal", "workflow", "list", "--address", "temporal:7233"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  temporal-ui:
+    image: temporalio/ui:latest
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    ports:
+      - "8080:8080"
+
+  temporal-worker:
+    build: .
+    command: python manage.py run_temporal_worker
+    depends_on:
+      - temporal
+      - db
+{% if cache == 'redis' %}
+      - redis
+{% endif %}
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - DATABASE_URL=postgresql://{{ project_slug }}_user:{{ project_slug }}_password@db:5432/{{ project_slug }}_db
+{% if cache == 'redis' %}
+      - REDIS_URL=redis://redis:6379/0
+{% endif %}
+    volumes:
+      - .:/app
+{% endif %}
+{% if observability_level == 'full' %}
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"  # UI
+      - "4318:4318"    # OTLP gRPC
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+{% endif %}
+
+volumes:
+  postgres_data:
+{% if cache == 'redis' %}
+  redis_data:
+{% endif %}

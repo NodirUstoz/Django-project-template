@@ -1,0 +1,279 @@
+_templates_suffix: .jinja
+_subdirectory: template
+_min_copier_version: "9.0.0"
+
+# Metadata
+_metadata:
+  version: "0.1.0"
+  license: "MIT"
+  author: "Nodir ustoz"
+
+# Project Basics
+project_name:
+  type: str
+  help: Project name
+  placeholder: "My Django Project"
+  validator: "{% if not project_name or project_name.strip() == '' %}Project name cannot be empty{% endif %}"
+
+project_slug:
+  type: str
+  help: Python package name (slug)
+  default: "{{ project_name.lower().replace(' ', '_').replace('-', '_') }}"
+  validator: "{% if not project_slug.isidentifier() %}Must be valid Python identifier{% endif %}"
+
+project_description:
+  type: str
+  help: Project description
+  placeholder: "A Django project built with Django-project-template"
+  validator: "{% if not project_description or project_description.strip() == '' %}Project description cannot be empty{% endif %}"
+
+author_name:
+  type: str
+  help: Author name
+  placeholder: "Your Name"
+
+author_email:
+  type: str
+  help: Author email
+  placeholder: "your.email@example.com"
+
+git_repository_url:
+  type: str
+  help: Git repository URL (leave empty if not created yet)
+  default: ""
+
+# Project Type (determines smart defaults)
+project_type:
+  type: str
+  help: Project type
+  choices:
+    SaaS (Multi-tenant with billing): saas
+    API (API-only backend): api
+    Web App (Traditional web application): web-app
+    Internal Tool (Corporate internal tool): internal-tool
+    Custom (Choose everything yourself): custom
+  default: "custom"
+
+# Tech Stack
+python_version:
+  type: str
+  help: Python version
+  choices:
+    - "3.14"
+    - "3.13"
+    - "3.12"
+  default: "3.14"
+
+dependency_manager:
+  type: str
+  help: Package manager
+  choices:
+    uv: uv
+    Poetry: poetry
+  default: "uv"
+
+database:
+  type: str
+  help: Database
+  choices:
+    PostgreSQL: postgresql
+    SQLite (dev) + PostgreSQL (prod): sqlite-dev-postgres-prod
+  default: "postgresql"
+
+cache:
+  type: str
+  help: Cache backend
+  choices:
+    Redis: redis
+    None: none
+  default: "redis"
+
+# API & Frontend
+api_style:
+  type: str
+  help: API framework
+  choices:
+    Django REST Framework: drf
+    GraphQL (Strawberry): graphql-strawberry
+    Both: both
+    None: none
+  default: >-
+    {%- if project_type == 'api' -%}drf
+    {%- elif project_type == 'saas' -%}drf
+    {%- elif project_type == 'web-app' -%}none
+    {%- elif project_type == 'internal-tool' -%}drf
+    {%- else -%}drf{%- endif -%}
+
+frontend:
+  type: str
+  help: Frontend approach
+  choices:
+    None: none
+    HTMX + Tailwind CSS: htmx-tailwind
+    Next.js: nextjs
+  default: >-
+    {%- if project_type == 'api' -%}none
+    {%- elif project_type == 'saas' -%}nextjs
+    {%- elif project_type == 'web-app' -%}htmx-tailwind
+    {%- elif project_type == 'internal-tool' -%}htmx-tailwind
+    {%- else -%}none{%- endif -%}
+
+# Async & Tasks
+background_tasks:
+  type: str
+  help: Background task processing
+  choices:
+    Celery: celery
+    Temporal: temporal
+    Both: both
+    None: none
+  default: >-
+    {%- if project_type == 'saas' -%}celery
+    {%- elif project_type == 'api' -%}celery
+    {%- elif project_type == 'web-app' -%}celery
+    {%- elif project_type == 'internal-tool' -%}celery
+    {%- else -%}celery{%- endif -%}
+
+use_channels:
+  type: bool
+  help: Include Django Channels for WebSockets?
+  default: false
+
+# Auth
+auth_backend:
+  type: str
+  help: Authentication backend
+  choices:
+    django-allauth: allauth
+    JWT: jwt
+    Both: both
+  default: "allauth"
+
+use_2fa:
+  type: bool
+  help: Include 2FA (TOTP)?
+  default: false
+
+# Observability
+observability_level:
+  type: str
+  help: Observability level
+  choices:
+    Minimal (JSON logs + health): minimal
+    Standard (Minimal + Sentry): standard
+    Full (Standard + Prometheus + OpenTelemetry): full
+  default: "standard"
+
+use_sentry:
+  type: bool
+  help: Include Sentry error tracking?
+  default: true
+
+# Deployment
+deployment_targets:
+  type: str
+  multiselect: true
+  help: Deployment targets
+  choices:
+    Kubernetes (Helm + Kustomize): kubernetes
+    Render: render
+    Fly.io: flyio
+    AWS ECS Fargate (Terraform): aws-ecs-fargate
+    AWS EC2 (Ansible): aws-ec2-ansible
+    Docker Compose: docker
+  default:
+    - >-
+      {%- if project_type == 'saas' -%}kubernetes
+      {%- elif project_type == 'api' -%}render
+      {%- elif project_type == 'web-app' -%}flyio
+      {%- elif project_type == 'internal-tool' -%}aws-ec2-ansible
+      {%- else -%}kubernetes{%- endif -%}
+
+# Storage
+media_storage:
+  type: str
+  help: Media file storage
+  choices:
+    Whitenoise (local): local-whitenoise
+    AWS S3: aws-s3
+    Google Cloud Storage: gcp-gcs
+    Azure Storage: azure-storage
+  default: "aws-s3"
+
+# Security
+security_profile:
+  type: str
+  help: Security level
+  choices:
+    Standard: standard
+    Strict: strict
+  default: "standard"
+
+use_sops:
+  type: bool
+  help: Use SOPS for encrypted secrets?
+  default: false
+
+# Optional Features
+use_teams:
+  type: bool
+  help: Include Teams/Organizations (multi-tenancy)?
+  default: >-
+    {%- if project_type == 'saas' -%}true
+    {%- elif project_type == 'internal-tool' -%}true
+    {%- else -%}false{%- endif -%}
+
+use_stripe:
+  type: bool
+  help: Include Stripe payment integration?
+  default: >-
+    {%- if project_type == 'saas' -%}true
+    {%- else -%}false{%- endif -%}
+
+stripe_mode:
+  type: str
+  help: Stripe integration mode
+  when: "{{ use_stripe }}"
+  choices:
+    Basic (Stripe API): basic
+    Advanced (dj-stripe): advanced
+  default: "advanced"
+
+use_search:
+  type: str
+  help: Search backend
+  choices:
+    None: none
+    PostgreSQL Full-Text Search: postgres-fts
+    OpenSearch: opensearch
+  default: "none"
+
+use_i18n:
+  type: bool
+  help: Enable internationalization?
+  default: false
+
+# CI/CD
+ci_provider:
+  type: str
+  help: CI/CD provider
+  choices:
+    GitHub Actions: github-actions
+    GitLab CI: gitlab-ci
+    Both: both
+  default: "github-actions"
+
+# License
+license:
+  type: str
+  help: Project license
+  choices:
+    MIT: MIT
+    Apache 2.0: Apache-2.0
+    GPL 3.0: GPL-3.0
+    BSD 3-Clause: BSD-3-Clause
+    Proprietary: Proprietary
+  default: "MIT"
+
+# Post-generation instructions are now provided in the template's README
+# instead of using _tasks to avoid the "unsafe feature" warning
